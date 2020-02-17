@@ -12,6 +12,7 @@ pub enum Choice {
 }
 
 impl Choice {
+    #[cfg_attr(feature = "flame_it", flame)]
     pub fn print_choice(
         &self,
         line: &String,
@@ -21,6 +22,7 @@ impl Choice {
         write!(handle, "{}", self.get_choice_slice(line, config).join(" "));
     }
 
+    #[cfg_attr(feature = "flame_it", flame)]
     pub fn is_reverse_range(&self) -> bool {
         match self {
             Choice::Field(_) => false,
@@ -31,6 +33,7 @@ impl Choice {
         }
     }
 
+    #[cfg_attr(feature = "flame_it", flame)]
     fn get_choice_slice<'a>(&self, line: &'a String, config: &Config) -> Vec<&'a str> {
         let words = config
             .separator

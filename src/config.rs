@@ -38,6 +38,7 @@ pub struct Config {
 }
 
 impl Config {
+#[cfg_attr(feature = "flame_it", flame)]
     pub fn new(opt: Opt) -> Self {
         let separator = Regex::new(match &opt.field_separator {
             Some(s) => s,
@@ -51,6 +52,7 @@ impl Config {
         Config { opt, separator }
     }
 
+#[cfg_attr(feature = "flame_it", flame)]
     pub fn parse_choice(src: &str) -> Result<Choice, ParseIntError> {
         let re = Regex::new(r"^(\d*):(\d*)$").unwrap();
 

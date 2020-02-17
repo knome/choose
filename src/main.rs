@@ -1,11 +1,20 @@
+#![cfg_attr(feature = "flame_it", feature(proc_macro_hygiene))]
+
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use structopt::StructOpt;
+
+#[cfg(feature = "flame_it")]
+extern crate flame;
+#[cfg(feature = "flame_it")]
+#[macro_use]
+extern crate flamer;
 
 mod choice;
 mod config;
 use config::Config;
 
+#[cfg_attr(feature = "flame_it", flame)]
 fn main() {
     let opt = config::Opt::from_args();
     let config = Config::new(opt);
@@ -33,4 +42,7 @@ fn main() {
             Err(e) => println!("ERROR: {}", e),
         }
     }
+
+    #[cfg(feature = "flame_it")]
+    flame::dump_html(File::create("flamegraph.html").unwrap()).unwrap();
 }

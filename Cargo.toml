@@ -9,3 +9,12 @@ edition = "2018"
 [dependencies]
 structopt = "0.3.0"
 regex = "1"
+flame  = { version = "0.2.2", optional = true }
+flamer = { version =   "0.3", optional = true }
+
+[features]
+default = []
+flame_it = ["flame", "flamer"]
+
+[profile.release]
+debug = true
