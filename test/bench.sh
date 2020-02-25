@@ -1,4 +1,5 @@
 #!/bin/bash
+cargo build --release # always be up to date
 output="bench_output"
 mkdir -p $output
 inputs=($(find test -name "long*txt" | sort -r))
