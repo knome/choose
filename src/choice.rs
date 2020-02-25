@@ -102,9 +102,8 @@ mod tests {
 
     use crate::config::{Config, Opt};
     use std::ffi::OsString;
+    use std::io::{self, BufWriter, Write};
     use structopt::StructOpt;
-
-use std::io;
 
     impl Config {
         pub fn from_iter<I>(iter: I) -> Self
@@ -116,119 +115,204 @@ use std::io;
         }
     }
 
+    struct MockStdout {
+        pub buffer: String,
+    }
+
+    impl MockStdout {
+        fn new() -> Self {
+            MockStdout {
+                buffer: String::new(),
+            }
+        }
+
+        fn str_from_buf_writer(b: BufWriter<MockStdout>) -> String {
+            match b.into_inner() {
+                Ok(b) => b.buffer,
+                Err(_) => panic!("Failed to access BufWriter inner writer"),
+            }
+            .trim_end()
+            .to_string()
+        }
+    }
+
+    impl Write for MockStdout {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            let mut bytes_written = 0;
+            for i in buf {
+                self.buffer.push(*i as char);
+                bytes_written += 1;
+            }
+            Ok(bytes_written)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
     mod get_choice_slice_tests {
         use super::*;
 
         #[test]
         fn print_0() {
-let stdout = io::stdout();
-let lock = stdout.lock();
-let mut handle = io::BufWriter::new(lock);
-
             let config = Config::from_iter(vec!["choose", "0"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust is pretty cool"),
+                &config,
+                &mut handle,
+            );
+
             assert_eq!(
-                vec!["rust"],
-                config.opt.choice[0]
-                    .get_choice_slice(&String::from("rust is pretty cool"), &config, &mut handle)
+                String::from("rust"),
+                MockStdout::str_from_buf_writer(handle)
             );
         }
 
         #[test]
         fn print_after_end() {
             let config = Config::from_iter(vec!["choose", "10"]);
-            assert_eq!(
-                Vec::<&str>::new(),
-                config.opt.choice[0]
-                    .get_choice_slice(&String::from("rust is pretty cool"), &config)
+            let mut handle = BufWriter::new(MockStdout::new());
+
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust is pretty cool"),
+                &config,
+                &mut handle,
             );
+
+            assert_eq!(String::new(), MockStdout::str_from_buf_writer(handle));
         }
 
         #[test]
         fn print_out_of_order() {
             let config = Config::from_iter(vec!["choose", "3", "1"]);
-            assert_eq!(
-                vec!["cool"],
-                config.opt.choice[0]
-                    .get_choice_slice(&String::from("rust is pretty cool"), &config)
+            let mut handle = BufWriter::new(MockStdout::new());
+            let mut handle1 = BufWriter::new(MockStdout::new());
+
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust is pretty cool"),
+                &config,
+                &mut handle,
             );
+
             assert_eq!(
-                vec!["is"],
-                config.opt.choice[1]
-                    .get_choice_slice(&String::from("rust is pretty cool"), &config)
+                String::from("cool"),
+                MockStdout::str_from_buf_writer(handle)
             );
+
+            config.opt.choice[1].get_choice_slice(
+                &String::from("rust is pretty cool"),
+                &config,
+                &mut handle1,
+            );
+
+            assert_eq!(String::from("is"), MockStdout::str_from_buf_writer(handle1));
         }
 
         #[test]
         fn print_1_to_3_exclusive() {
             let config = Config::from_iter(vec!["choose", "1:3", "-x"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust is pretty cool"),
+                &config,
+                &mut handle,
+            );
             assert_eq!(
-                vec!["is", "pretty"],
-                config.opt.choice[0]
-                    .get_choice_slice(&String::from("rust is pretty cool"), &config)
+                String::from("is pretty"),
+                MockStdout::str_from_buf_writer(handle)
             );
         }
 
         #[test]
         fn print_1_to_3() {
             let config = Config::from_iter(vec!["choose", "1:3"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust is pretty cool"),
+                &config,
+                &mut handle,
+            );
             assert_eq!(
-                vec!["is", "pretty", "cool"],
-                config.opt.choice[0]
-                    .get_choice_slice(&String::from("rust is pretty cool"), &config)
+                String::from("is pretty cool"),
+                MockStdout::str_from_buf_writer(handle)
             );
         }
 
         #[test]
         fn print_1_to_3_separated_by_hashtag() {
             let config = Config::from_iter(vec!["choose", "1:3", "-f", "#"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust#is#pretty#cool"),
+                &config,
+                &mut handle,
+            );
             assert_eq!(
-                vec!["is", "pretty", "cool"],
-                config.opt.choice[0]
-                    .get_choice_slice(&String::from("rust#is#pretty#cool"), &config)
+                String::from("is pretty cool"),
+                MockStdout::str_from_buf_writer(handle)
             );
         }
 
         #[test]
         fn print_1_to_3_separated_by_varying_multiple_hashtag_exclusive() {
             let config = Config::from_iter(vec!["choose", "1:3", "-f", "#", "-x"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust##is###pretty####cool"),
+                &config,
+                &mut handle,
+            );
             assert_eq!(
-                vec!["is", "pretty"],
-                config.opt.choice[0]
-                    .get_choice_slice(&String::from("rust##is###pretty####cool"), &config)
+                String::from("is pretty"),
+                MockStdout::str_from_buf_writer(handle)
             );
         }
 
         #[test]
         fn print_1_to_3_separated_by_varying_multiple_hashtag() {
             let config = Config::from_iter(vec!["choose", "1:3", "-f", "#"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust##is###pretty####cool"),
+                &config,
+                &mut handle,
+            );
             assert_eq!(
-                vec!["is", "pretty", "cool"],
-                config.opt.choice[0]
-                    .get_choice_slice(&String::from("rust##is###pretty####cool"), &config)
+                String::from("is pretty cool"),
+                MockStdout::str_from_buf_writer(handle)
             );
         }
 
         #[test]
         fn print_1_to_3_separated_by_regex_group_vowels_exclusive() {
             let config = Config::from_iter(vec!["choose", "1:3", "-f", "[aeiou]", "-x"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].get_choice_slice(
+                &String::from("the quick brown fox jumped over the lazy dog"),
+                &config,
+                &mut handle,
+            );
             assert_eq!(
-                vec![" q", "ck br"],
-                config.opt.choice[0].get_choice_slice(
-                    &String::from("the quick brown fox jumped over the lazy dog"),
-                    &config
-                )
+                String::from(" q ck br"),
+                MockStdout::str_from_buf_writer(handle)
             );
         }
 
         #[test]
         fn print_1_to_3_separated_by_regex_group_vowels() {
             let config = Config::from_iter(vec!["choose", "1:3", "-f", "[aeiou]"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].get_choice_slice(
+                &String::from("the quick brown fox jumped over the lazy dog"),
+                &config,
+                &mut handle,
+            );
             assert_eq!(
-                vec![" q", "ck br", "wn f"],
-                config.opt.choice[0].get_choice_slice(
-                    &String::from("the quick brown fox jumped over the lazy dog"),
-                    &config
-                )
+                String::from(" q ck br wn f"),
+                MockStdout::str_from_buf_writer(handle)
             );
         }
 
