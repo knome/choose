@@ -13,11 +13,11 @@ pub enum Choice {
 
 impl Choice {
     #[cfg_attr(feature = "flame_it", flame)]
-    pub fn print_choice(
+    pub fn print_choice<WriterType: Write>(
         &self,
         line: &String,
         config: &Config,
-        handle: &mut BufWriter<std::io::StdoutLock>,
+        handle: &mut BufWriter<WriterType>,
     ) {
         self.get_choice_slice(line, config, handle);
     }
@@ -34,11 +34,11 @@ impl Choice {
     }
 
     #[cfg_attr(feature = "flame_it", flame)]
-    fn get_choice_slice<'a>(
+    fn get_choice_slice<'a, WriterType: Write>(
         &self,
         line: &'a String,
         config: &Config,
-        handle: &mut BufWriter<std::io::StdoutLock>,
+        handle: &mut BufWriter<WriterType>,
     ) {
         let words = config
             .separator
