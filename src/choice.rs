@@ -19,7 +19,7 @@ impl Choice {
         config: &Config,
         handle: &mut BufWriter<std::io::StdoutLock>,
     ) {
-        write!(handle, "{}", self.get_choice_slice(line, config).join(" "));
+        self.get_choice_slice(line, config, handle);
     }
 
     #[cfg_attr(feature = "flame_it", flame)]
@@ -34,7 +34,12 @@ impl Choice {
     }
 
     #[cfg_attr(feature = "flame_it", flame)]
-    fn get_choice_slice<'a>(&self, line: &'a String, config: &Config) -> Vec<&'a str> {
+    fn get_choice_slice<'a>(
+        &self,
+        line: &'a String,
+        config: &Config,
+        handle: &mut BufWriter<std::io::StdoutLock>,
+    ) {
         let words = config
             .separator
             .split(line)
@@ -42,17 +47,19 @@ impl Choice {
             .filter(|s| !s.is_empty())
             .enumerate();
 
-        let mut slices = match self {
+        match self {
             Choice::Field(i) => words
                 .filter(|x| x.0 == *i as usize)
                 .map(|x| x.1)
-                .collect::<Vec<&str>>(),
+                .for_each(|x| write!(handle, "{} ", x).unwrap()),
             Choice::FieldRange(r) => match r {
-                (None, None) => words.map(|x| x.1).collect::<Vec<&str>>(),
+                (None, None) => words
+                    .map(|x| x.1)
+                    .for_each(|x| write!(handle, "{} ", x).unwrap()),
                 (Some(start), None) => words
                     .filter(|x| x.0 >= (*start).try_into().unwrap())
                     .map(|x| x.1)
-                    .collect::<Vec<&str>>(),
+                    .for_each(|x| write!(handle, "{} ", x).unwrap()),
                 (None, Some(end)) => {
                     let e: usize = if config.opt.exclusive {
                         (end - 1).try_into().unwrap()
@@ -62,7 +69,7 @@ impl Choice {
                     words
                         .filter(|x| x.0 <= e)
                         .map(|x| x.1)
-                        .collect::<Vec<&str>>()
+                        .for_each(|x| write!(handle, "{} ", x).unwrap())
                 }
                 (Some(start), Some(end)) => {
                     let e: usize = if config.opt.exclusive {
@@ -77,16 +84,16 @@ impl Choice {
                                     && (x.0 >= e && x.0 <= (*start).try_into().unwrap())
                         })
                         .map(|x| x.1)
-                        .collect::<Vec<&str>>()
+                        .for_each(|x| write!(handle, "{} ", x).unwrap())
                 }
             },
         };
 
-        if self.is_reverse_range() {
-            slices.reverse();
-        }
+        //if self.is_reverse_range() {
+        //slices.reverse();
+        //}
 
-        return slices;
+        //return slices;
     }
 }
 
@@ -96,6 +103,8 @@ mod tests {
     use crate::config::{Config, Opt};
     use std::ffi::OsString;
     use structopt::StructOpt;
+
+use std::io;
 
     impl Config {
         pub fn from_iter<I>(iter: I) -> Self
@@ -112,11 +121,15 @@ mod tests {
 
         #[test]
         fn print_0() {
+let stdout = io::stdout();
+let lock = stdout.lock();
+let mut handle = io::BufWriter::new(lock);
+
             let config = Config::from_iter(vec!["choose", "0"]);
             assert_eq!(
                 vec!["rust"],
                 config.opt.choice[0]
-                    .get_choice_slice(&String::from("rust is pretty cool"), &config)
+                    .get_choice_slice(&String::from("rust is pretty cool"), &config, &mut handle)
             );
         }
 
@@ -228,7 +241,6 @@ mod tests {
                     .get_choice_slice(&String::from("rust lang is pretty darn cool"), &config)
             );
         }
-
     }
 
     mod is_reverse_range_tests {
@@ -263,7 +275,5 @@ mod tests {
             let config = Config::from_iter(vec!["choose", "4:2"]);
             assert_eq!(true, config.opt.choice[0].is_reverse_range());
         }
-
     }
-
 }
