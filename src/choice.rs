@@ -319,10 +319,45 @@ mod tests {
         #[test]
         fn print_3_to_1() {
             let config = Config::from_iter(vec!["choose", "3:1"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust lang is pretty darn cool"),
+                &config,
+                &mut handle,
+            );
             assert_eq!(
-                vec!["pretty", "is", "lang"],
-                config.opt.choice[0]
-                    .get_choice_slice(&String::from("rust lang is pretty darn cool"), &config)
+                String::from("pretty is lang"),
+                MockStdout::str_from_buf_writer(handle)
+            );
+        }
+
+        #[test]
+        fn print_3_to_beginning() {
+            let config = Config::from_iter(vec!["choose", "3:"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust lang is pretty darn cool"),
+                &config,
+                &mut handle,
+            );
+            assert_eq!(
+                String::from("pretty is lang rust"),
+                MockStdout::str_from_buf_writer(handle)
+            );
+        }
+
+        #[test]
+        fn print_end_to_1() {
+            let config = Config::from_iter(vec!["choose", ":1"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].get_choice_slice(
+                &String::from("rust lang is pretty darn cool"),
+                &config,
+                &mut handle,
+            );
+            assert_eq!(
+                String::from("cool darn pretty is lang"),
+                MockStdout::str_from_buf_writer(handle)
             );
         }
     }
