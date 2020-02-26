@@ -37,7 +37,7 @@ fn main() {
                 for choice in &config.opt.choice {
                     choice.print_choice(&l, &config, &mut handle);
                 }
-                writeln!(handle, "");
+                writeln!(handle, "").unwrap();
             }
             Err(e) => println!("ERROR: {}", e),
         }

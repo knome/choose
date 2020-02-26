@@ -1,7 +1,5 @@
-use crate::io::{BufWriter, Write};
-use std::convert::TryInto;
-
 use crate::config::Config;
+use crate::io::{BufWriter, Write};
 
 pub type Range = (Option<u32>, Option<u32>);
 
@@ -40,60 +38,27 @@ impl Choice {
         config: &Config,
         handle: &mut BufWriter<WriterType>,
     ) {
-        let words = config
-            .separator
-            .split(line)
-            .into_iter()
-            .filter(|s| !s.is_empty())
-            .enumerate();
-
-        match self {
-            Choice::Field(i) => words
-                .filter(|x| x.0 == *i as usize)
-                .map(|x| x.1)
-                .for_each(|x| write!(handle, "{} ", x).unwrap()),
-            Choice::FieldRange(r) => match r {
-                (None, None) => words
-                    .map(|x| x.1)
-                    .for_each(|x| write!(handle, "{} ", x).unwrap()),
-                (Some(start), None) => words
-                    .filter(|x| x.0 >= (*start).try_into().unwrap())
-                    .map(|x| x.1)
-                    .for_each(|x| write!(handle, "{} ", x).unwrap()),
-                (None, Some(end)) => {
-                    let e: usize = if config.opt.exclusive {
-                        (end - 1).try_into().unwrap()
-                    } else {
-                        (*end).try_into().unwrap()
-                    };
-                    words
-                        .filter(|x| x.0 <= e)
-                        .map(|x| x.1)
-                        .for_each(|x| write!(handle, "{} ", x).unwrap())
-                }
-                (Some(start), Some(end)) => {
-                    let e: usize = if config.opt.exclusive {
-                        (end - 1).try_into().unwrap()
-                    } else {
-                        (*end).try_into().unwrap()
-                    };
-                    words
-                        .filter(|x| {
-                            (x.0 <= e && x.0 >= (*start).try_into().unwrap())
-                                || self.is_reverse_range()
-                                    && (x.0 >= e && x.0 <= (*start).try_into().unwrap())
-                        })
-                        .map(|x| x.1)
-                        .for_each(|x| write!(handle, "{} ", x).unwrap())
-                }
+        let bounds = match self {
+            Choice::Field(x) => (*x, *x),
+            Choice::FieldRange(x) => match x {
+                (None, None) => (0, u32::max_value()),
+                (Some(b), None) => (*b, u32::max_value()),
+                (None, Some(e)) => (0, *e),
+                (Some(b), Some(e)) => (*b, *e),
             },
         };
 
-        //if self.is_reverse_range() {
-        //slices.reverse();
-        //}
-
-        //return slices;
+        config
+            .separator
+            .split(line)
+            .filter(|s| !s.is_empty())
+            .enumerate()
+            .filter(|(i, _)| {
+                *i as u32 >= bounds.0
+                    && (((*i as u32) <= bounds.1 && !config.opt.exclusive)
+                        || ((*i as u32) < bounds.1 && config.opt.exclusive))
+            })
+            .for_each(|(_, word)| write!(handle, "{} ", word).unwrap());
     }
 }
 
