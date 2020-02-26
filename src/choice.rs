@@ -1,15 +1,17 @@
 use crate::config::Config;
 use crate::io::{BufWriter, Write};
 
-pub type Range = (Option<u32>, Option<u32>);
-
 #[derive(Debug)]
-pub enum Choice {
-    Field(u32),
-    FieldRange(Range),
+pub struct Choice {
+    pub start: usize,
+    pub end: usize,
 }
 
 impl Choice {
+    pub fn new(start: usize, end: usize) -> Self {
+        Choice { start, end }
+    }
+
     #[cfg_attr(feature = "flame_it", flame)]
     pub fn print_choice<WriterType: Write>(
         &self,
@@ -22,13 +24,7 @@ impl Choice {
 
     #[cfg_attr(feature = "flame_it", flame)]
     pub fn is_reverse_range(&self) -> bool {
-        match self {
-            Choice::Field(_) => false,
-            Choice::FieldRange(r) => match r {
-                (Some(start), Some(end)) => end < start,
-                _ => false,
-            },
-        }
+        self.end < self.start
     }
 
     #[cfg_attr(feature = "flame_it", flame)]
@@ -38,25 +34,15 @@ impl Choice {
         config: &Config,
         handle: &mut BufWriter<WriterType>,
     ) {
-        let bounds = match self {
-            Choice::Field(x) => (*x, *x),
-            Choice::FieldRange(x) => match x {
-                (None, None) => (0, u32::max_value()),
-                (Some(b), None) => (*b, u32::max_value()),
-                (None, Some(e)) => (0, *e),
-                (Some(b), Some(e)) => (*b, *e),
-            },
-        };
-
         config
             .separator
             .split(line)
             .filter(|s| !s.is_empty())
             .enumerate()
             .filter(|(i, _)| {
-                *i as u32 >= bounds.0
-                    && (((*i as u32) <= bounds.1 && !config.opt.exclusive)
-                        || ((*i as u32) < bounds.1 && config.opt.exclusive))
+                *i >= self.start
+                    && ((*i <= self.end && !config.opt.exclusive)
+                        || (*i < self.end && config.opt.exclusive))
             })
             .for_each(|(_, word)| write!(handle, "{} ", word).unwrap());
     }
