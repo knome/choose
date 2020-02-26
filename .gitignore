@@ -5,3 +5,4 @@ todo
 bench_output/
 **/*.bench
 **/*.svg
+test/long*txt
