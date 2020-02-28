@@ -34,17 +34,28 @@ impl Choice {
         config: &Config,
         handle: &mut BufWriter<WriterType>,
     ) {
-        config
-            .separator
-            .split(line)
-            .filter(|s| !s.is_empty())
-            .enumerate()
-            .filter(|(i, _)| {
-                *i >= self.start
-                    && ((*i <= self.end && !config.opt.exclusive)
-                        || (*i < self.end && config.opt.exclusive))
-            })
-            .for_each(|(_, word)| write!(handle, "{} ", word).unwrap());
+        let mut line_iter = config.separator.split(line).filter(|s| !s.is_empty());
+
+        if self.start > 0 {
+            line_iter.nth(self.start - 1);
+        }
+
+        let end = if config.opt.exclusive {
+            self.end - 1
+        } else {
+            self.end
+        };
+
+        for i in 0..=(end - self.start) {
+            match line_iter.next() {
+                Some(s) => write!(handle, "{} ", s).unwrap(),
+                None => break
+            }
+
+            if self.end <= self.start+i {
+                break;
+            }
+        }
     }
 }
 
