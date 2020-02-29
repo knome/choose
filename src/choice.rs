@@ -19,21 +19,6 @@ impl Choice {
         config: &Config,
         handle: &mut BufWriter<WriterType>,
     ) {
-        self.get_choice_slice(line, config, handle);
-    }
-
-    #[cfg_attr(feature = "flame_it", flame)]
-    pub fn is_reverse_range(&self) -> bool {
-        self.end < self.start
-    }
-
-    #[cfg_attr(feature = "flame_it", flame)]
-    fn get_choice_slice<'a, WriterType: Write>(
-        &self,
-        line: &'a String,
-        config: &Config,
-        handle: &mut BufWriter<WriterType>,
-    ) {
         let mut line_iter = config.separator.split(line).filter(|s| !s.is_empty());
 
         if self.start > 0 {
@@ -49,13 +34,18 @@ impl Choice {
         for i in 0..=(end - self.start) {
             match line_iter.next() {
                 Some(s) => write!(handle, "{} ", s).unwrap(),
-                None => break
+                None => break,
             }
 
-            if self.end <= self.start+i {
+            if self.end <= self.start + i {
                 break;
             }
         }
+    }
+
+    #[cfg_attr(feature = "flame_it", flame)]
+    pub fn is_reverse_range(&self) -> bool {
+        self.end < self.start
     }
 }
 
@@ -113,7 +103,7 @@ mod tests {
         }
     }
 
-    mod get_choice_slice_tests {
+    mod print_choice_tests {
         use super::*;
 
         #[test]
@@ -121,7 +111,7 @@ mod tests {
             let config = Config::from_iter(vec!["choose", "0"]);
             let mut handle = BufWriter::new(MockStdout::new());
 
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust is pretty cool"),
                 &config,
                 &mut handle,
@@ -138,7 +128,7 @@ mod tests {
             let config = Config::from_iter(vec!["choose", "10"]);
             let mut handle = BufWriter::new(MockStdout::new());
 
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust is pretty cool"),
                 &config,
                 &mut handle,
@@ -153,7 +143,7 @@ mod tests {
             let mut handle = BufWriter::new(MockStdout::new());
             let mut handle1 = BufWriter::new(MockStdout::new());
 
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust is pretty cool"),
                 &config,
                 &mut handle,
@@ -164,7 +154,7 @@ mod tests {
                 MockStdout::str_from_buf_writer(handle)
             );
 
-            config.opt.choice[1].get_choice_slice(
+            config.opt.choice[1].print_choice(
                 &String::from("rust is pretty cool"),
                 &config,
                 &mut handle1,
@@ -177,7 +167,7 @@ mod tests {
         fn print_1_to_3_exclusive() {
             let config = Config::from_iter(vec!["choose", "1:3", "-x"]);
             let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust is pretty cool"),
                 &config,
                 &mut handle,
@@ -192,7 +182,7 @@ mod tests {
         fn print_1_to_3() {
             let config = Config::from_iter(vec!["choose", "1:3"]);
             let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust is pretty cool"),
                 &config,
                 &mut handle,
@@ -207,7 +197,7 @@ mod tests {
         fn print_1_to_3_separated_by_hashtag() {
             let config = Config::from_iter(vec!["choose", "1:3", "-f", "#"]);
             let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust#is#pretty#cool"),
                 &config,
                 &mut handle,
@@ -222,7 +212,7 @@ mod tests {
         fn print_1_to_3_separated_by_varying_multiple_hashtag_exclusive() {
             let config = Config::from_iter(vec!["choose", "1:3", "-f", "#", "-x"]);
             let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust##is###pretty####cool"),
                 &config,
                 &mut handle,
@@ -237,7 +227,7 @@ mod tests {
         fn print_1_to_3_separated_by_varying_multiple_hashtag() {
             let config = Config::from_iter(vec!["choose", "1:3", "-f", "#"]);
             let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust##is###pretty####cool"),
                 &config,
                 &mut handle,
@@ -252,7 +242,7 @@ mod tests {
         fn print_1_to_3_separated_by_regex_group_vowels_exclusive() {
             let config = Config::from_iter(vec!["choose", "1:3", "-f", "[aeiou]", "-x"]);
             let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("the quick brown fox jumped over the lazy dog"),
                 &config,
                 &mut handle,
@@ -267,7 +257,7 @@ mod tests {
         fn print_1_to_3_separated_by_regex_group_vowels() {
             let config = Config::from_iter(vec!["choose", "1:3", "-f", "[aeiou]"]);
             let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("the quick brown fox jumped over the lazy dog"),
                 &config,
                 &mut handle,
@@ -282,7 +272,7 @@ mod tests {
         fn print_3_to_1() {
             let config = Config::from_iter(vec!["choose", "3:1"]);
             let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust lang is pretty darn cool"),
                 &config,
                 &mut handle,
@@ -297,7 +287,7 @@ mod tests {
         fn print_3_to_beginning() {
             let config = Config::from_iter(vec!["choose", "3:"]);
             let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust lang is pretty darn cool"),
                 &config,
                 &mut handle,
@@ -312,7 +302,7 @@ mod tests {
         fn print_end_to_1() {
             let config = Config::from_iter(vec!["choose", ":1"]);
             let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].get_choice_slice(
+            config.opt.choice[0].print_choice(
                 &String::from("rust lang is pretty darn cool"),
                 &config,
                 &mut handle,
