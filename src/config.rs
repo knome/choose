@@ -39,7 +39,13 @@ pub struct Config {
 
 impl Config {
     #[cfg_attr(feature = "flame_it", flame)]
-    pub fn new(opt: Opt) -> Self {
+    pub fn new(mut opt: Opt) -> Self {
+        if opt.exclusive {
+            for mut choice in &mut opt.choice {
+                choice.end = choice.end - 1;
+            }
+        }
+
         let separator = Regex::new(match &opt.field_separator {
             Some(s) => s,
             None => "[[:space:]]",

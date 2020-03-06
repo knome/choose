@@ -25,13 +25,7 @@ impl Choice {
             line_iter.nth(self.start - 1);
         }
 
-        let end = if config.opt.exclusive {
-            self.end - 1
-        } else {
-            self.end
-        };
-
-        for i in 0..=(end - self.start) {
+        for i in 0..=(self.end - self.start) {
             match line_iter.next() {
                 Some(s) => write!(handle, "{} ", s).unwrap(),
                 None => break,
