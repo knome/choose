@@ -40,7 +40,7 @@ impl Choice {
 
             loop {
                 match stack.pop() {
-                    Some(s) => write!(handle, "{} ", s).unwrap(),
+                    Some(s) => Choice::write_bytes(handle, s.as_bytes()),
                     None => break,
                 }
             }
@@ -51,15 +51,20 @@ impl Choice {
 
             for i in 0..=(self.end - self.start) {
                 match line_iter.next() {
-                    Some(s) => write!(handle, "{} ", s).unwrap(),
+                    Some(s) => Choice::write_bytes(handle, s.as_bytes()),
                     None => break,
-                }
+                };
 
                 if self.end <= self.start + i {
                     break;
                 }
             }
         }
+    }
+
+    fn write_bytes<WriterType: Write>(handle: &mut BufWriter<WriterType>, b: &[u8]) {
+        handle.write(b).unwrap();
+        handle.write(b" ").unwrap();
     }
 
     #[cfg_attr(feature = "flame_it", flame)]
