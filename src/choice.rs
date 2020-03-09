@@ -358,6 +358,21 @@ mod tests {
                 MockStdout::str_from_buf_writer(handle)
             );
         }
+
+        #[test]
+        fn print_0_with_preceding_separator() {
+            let config = Config::from_iter(vec!["choose", "0"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].print_choice(
+                &String::from("   rust lang is pretty darn cool"),
+                &config,
+                &mut handle,
+            );
+            assert_eq!(
+                String::from("rust"),
+                MockStdout::str_from_buf_writer(handle)
+            );
+        }
     }
 
     mod is_reverse_range_tests {
