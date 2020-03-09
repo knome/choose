@@ -21,18 +21,43 @@ impl Choice {
     ) {
         let mut line_iter = config.separator.split(line).filter(|s| !s.is_empty());
 
-        if self.start > 0 {
-            line_iter.nth(self.start - 1);
-        }
-
-        for i in 0..=(self.end - self.start) {
-            match line_iter.next() {
-                Some(s) => write!(handle, "{} ", s).unwrap(),
-                None => break,
+        if self.is_reverse_range() {
+            if self.end > 0 {
+                line_iter.nth(self.end - 1);
             }
 
-            if self.end <= self.start + i {
-                break;
+            let mut stack = Vec::new();
+            for i in 0..=(self.start - self.end) {
+                match line_iter.next() {
+                    Some(s) => stack.push(s),
+                    None => break,
+                }
+
+                if self.start <= self.end + i {
+                    break;
+                }
+            }
+
+            loop {
+                match stack.pop() {
+                    Some(s) => write!(handle, "{} ", s).unwrap(),
+                    None => break,
+                }
+            }
+        } else {
+            if self.start > 0 {
+                line_iter.nth(self.start - 1);
+            }
+
+            for i in 0..=(self.end - self.start) {
+                match line_iter.next() {
+                    Some(s) => write!(handle, "{} ", s).unwrap(),
+                    None => break,
+                }
+
+                if self.end <= self.start + i {
+                    break;
+                }
             }
         }
     }
@@ -278,8 +303,8 @@ mod tests {
         }
 
         #[test]
-        fn print_3_to_beginning() {
-            let config = Config::from_iter(vec!["choose", "3:"]);
+        fn print_3_to_1_exclusive() {
+            let config = Config::from_iter(vec!["choose", "3:1", "-x"]);
             let mut handle = BufWriter::new(MockStdout::new());
             config.opt.choice[0].print_choice(
                 &String::from("rust lang is pretty darn cool"),
@@ -287,22 +312,7 @@ mod tests {
                 &mut handle,
             );
             assert_eq!(
-                String::from("pretty is lang rust"),
-                MockStdout::str_from_buf_writer(handle)
-            );
-        }
-
-        #[test]
-        fn print_end_to_1() {
-            let config = Config::from_iter(vec!["choose", ":1"]);
-            let mut handle = BufWriter::new(MockStdout::new());
-            config.opt.choice[0].print_choice(
-                &String::from("rust lang is pretty darn cool"),
-                &config,
-                &mut handle,
-            );
-            assert_eq!(
-                String::from("cool darn pretty is lang"),
+                String::from("is lang"),
                 MockStdout::str_from_buf_writer(handle)
             );
         }

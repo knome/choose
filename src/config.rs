@@ -42,7 +42,11 @@ impl Config {
     pub fn new(mut opt: Opt) -> Self {
         if opt.exclusive {
             for mut choice in &mut opt.choice {
-                choice.end = choice.end - 1;
+                if choice.is_reverse_range() {
+                    choice.start = choice.start - 1;
+                } else {
+                    choice.end = choice.end - 1;
+                }
             }
         }
 
