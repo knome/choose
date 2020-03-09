@@ -316,6 +316,48 @@ mod tests {
                 MockStdout::str_from_buf_writer(handle)
             );
         }
+
+        #[test]
+        fn print_1_to_3_nonexistant_field_separator() {
+            let config = Config::from_iter(vec!["choose", "1:3", "-f", "#"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].print_choice(
+                &String::from("rust lang is pretty darn cool"),
+                &config,
+                &mut handle,
+            );
+            assert_eq!(String::from(""), MockStdout::str_from_buf_writer(handle));
+        }
+
+        #[test]
+        fn print_0_nonexistant_field_separator() {
+            let config = Config::from_iter(vec!["choose", "0", "-f", "#"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].print_choice(
+                &String::from("rust lang is pretty darn cool"),
+                &config,
+                &mut handle,
+            );
+            assert_eq!(
+                String::from("rust lang is pretty darn cool"),
+                MockStdout::str_from_buf_writer(handle)
+            );
+        }
+
+        #[test]
+        fn print_0_to_3_nonexistant_field_separator() {
+            let config = Config::from_iter(vec!["choose", "0:3", "-f", "#"]);
+            let mut handle = BufWriter::new(MockStdout::new());
+            config.opt.choice[0].print_choice(
+                &String::from("rust lang is pretty darn cool"),
+                &config,
+                &mut handle,
+            );
+            assert_eq!(
+                String::from("rust lang is pretty darn cool"),
+                MockStdout::str_from_buf_writer(handle)
+            );
+        }
     }
 
     mod is_reverse_range_tests {
